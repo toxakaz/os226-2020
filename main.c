@@ -36,19 +36,27 @@ void str_add(char** str, int* len, int* real_len, char c)
 	*len += 1;
 }
 
-void command_arg_add(char*** command, int* size, int* real_size, char* str)
+char** command_create(int* index, int size, char* str)
+{
+	char** command = (char**)malloc(sizeof(char*) * size);
+	for (int i = 0; i < size; i++)
+		command[i] = str + index[i];
+	return command;
+}
+
+void index_add(int** index, int* size, int* real_size, int in)
 {
 	if (*size >= *real_size)
 	{
-		char** new_command = (char**)malloc(sizeof(char*) * (*real_size << 1));
-		for (int i = 0; i < *size; i++)
-			new_command[i] = (*command)[i];
-		free(*command);
-		*command = new_command;
+		int* new_ind = (int*)malloc(sizeof(int) * (*real_size << 1));
+		for (int i = 0; i < *real_size; i++)
+			new_ind[i] = (*index)[i];
+		free(*index);
 		*real_size <<= 1;
+		*index = new_ind;
 	}
 
-	(*command)[*size] = str;
+	(*index)[*size] = in;
 	*size += 1;
 }
 
@@ -83,52 +91,70 @@ int main(int argc, char* argv[])
 	for (int i = 0; i < strlen("cdehort ;"); i++)
 		key["cdehort ;"[i]] = i;
 
-	int command_real_size = 32;
-	char** command = (char**)malloc(sizeof(char*) * command_real_size);
-	int command_size = 0;
+	int index_real_size = 8;
+	int* index = (int*)malloc(sizeof(int) * index_real_size);
+	int index_size;
+	char** command;
 
-	int str_real_len = 32;
+	int str_real_len = 8;
 	char* str = (char*)malloc(sizeof(char) * str_real_len);
-	int str_len = 0;
+	int str_len;
 
 	for (;;)
 	{
 		int state = 0;
 		char error = 0;
+		int error_point = 0;
+		char end = 0;
+		index_size = 0;
+		str_len = 0;
 
-		for (char c = getchar(); c != '\n'; c = getchar())
-			str_add(&str, &str_len, &str_real_len, c);
-		str_add(&str, &str_len, &str_real_len, ';');
-
-		char* last_point = str;
-
-		for (int i = 0; i < str_len && !error; i++)
+		for (char c = getchar();; c = getchar())
 		{
-			state = automat[state][key[str[i]]];
+			if (c == '\n' || c == '\0')
+			{
+				c = ';';
+				end = 1;
+			}
+
+			str_add(&str, &str_len, &str_real_len, c);
+			state = automat[state][key[c]];
 			switch (automat[state][10])
 			{
 			case 1:
-				last_point = str + i;
-				command_arg_add(&command, &command_size, &command_real_size, last_point);
+				error_point = str_len - 1;
+				index_add(&index, &index_size, &index_real_size, str_len - 1);
 				break;
 			case 2:
-				str[i] = '\0';
+				str[str_len - 1] = '\0';
 				break;
 			case 3:
-				str[i] = '\0';
+				str[str_len - 1] = '\0';
 			case 0:
+				command = command_create(index, index_size, str);
 				if (command[0][0] == 'e')
-					code = echo(command_size, command);
+					code = echo(index_size, command);
 				else
-					code = retcode(command_size, command);
-				command_size = 0;
+					code = retcode(index_size, command);
+				free(command);
+				index_size = 0;
+				str_len = 0;
+				error_point = 0;
 				break;
 			case 4:
-				str[str_len - 1] = '\0';
-				printf("can not process command: %s\n", last_point);
-				code = -1;
-				error = 1;
+				if (!error)
+				{
+					for (c = getchar(); c != '\n'; c = getchar())
+						str_add(&str, &str_len, &str_real_len, c);
+					str_add(&str, &str_len, &str_real_len, '\0');
+					printf("can not process command: %s\n", str + error_point);
+					code = -1;
+					error = 1;
+				}
 			}
+
+			if (end || error)
+				break;
 		}
 
 		str_len = 0;
