@@ -109,9 +109,9 @@ int main(int argc, char* argv[])
 		index_size = 0;
 		str_len = 0;
 
-		for (char c = getchar();; c = getchar())
+		for (char c = getchar(); stdin; c = getchar())
 		{
-			if (c == '\n' || c == '\0')
+			if (c == '\n' || c == '\0' || feof(stdin))
 			{
 				c = ';';
 				end = 1;
