@@ -39,33 +39,16 @@ void str_add(struct str* str, char c)
 		str->str = new_string;
 	}
 
-	str->str[str->len - 1] = c;
-	str->str[str->len++] = '\0';
+	str->str[str->len++] = c;
 }
 
 struct str* init(int start_len)
 {
 	struct str* str = (struct str*)malloc(sizeof(struct str));
-	str->len = 1;
+	str->len = 0;
 	str->real_len = start_len;
 	str->str = (char*)malloc(sizeof(char) * start_len);
-	str->str[0] = '\0';
-
 	return str;
-}
-
-void str_free(struct str* str)
-{
-	free(str->str);
-	free(str);
-}
-
-int process(int argc, char* argv[])
-{
-	if (argv[0][0] == 'e')
-		return echo(argc, argv);
-	else
-		return retcode(argc, argv);
 }
 
 struct command
@@ -95,6 +78,7 @@ void command_arg_add(struct command* command, char* str)
 		command->command = new_command;
 		command->real_size <<= 1;
 	}
+
 	command->command[command->size++] = str;
 }
 
@@ -126,11 +110,11 @@ int main(int argc, char* argv[])
 	int key[2 << (sizeof(char) << 3)];
 	for (int i = 0; i < 2 << (sizeof(char) << 3); i++)
 		key[i] = 9;
-	for (int i = 0; i < 9; i++)
+	for (int i = 0; i < strlen("cdehort ;"); i++)
 		key["cdehort ;"[i]] = i;
 
-	struct command* command = init_command(8);
-	struct str* str = init(8);
+	struct command* command = init_command(32);
+	struct str* str = init(32);
 
 	for (;;)
 	{
@@ -143,13 +127,13 @@ int main(int argc, char* argv[])
 
 		char* last_point = str->str;
 
-		for (int i = 0; i < str->len && str->str[i] != '\0' && !error; i++)
+		for (int i = 0; i < str->len && !error; i++)
 		{
 			state = automat[state][key[str->str[i]]];
 			switch (automat[state][10])
 			{
 			case 1:
-				last_point = &(str->str[i]);
+				last_point = str->str + i;
 				command_arg_add(command, last_point);
 				break;
 			case 2:
@@ -158,18 +142,20 @@ int main(int argc, char* argv[])
 			case 3:
 				str->str[i] = '\0';
 			case 0:
-				code = process(command->size, command->command);
+				if (command->command[0][0] == 'e')
+					code = echo(command->size, command->command);
+				else
+					code = retcode(command->size, command->command);
 				command->size = 0;
 				break;
 			case 4:
-				str->str[str->len - 2] = '\0';
+				str->str[str->len - 1] = '\0';
 				printf("can not process command: %s\n", last_point);
 				code = -1;
 				error = 1;
 			}
 		}
 
-		str->len = 1;
-		str->str[0] = '\0';
+		str->len = 0;
 	}
 }
