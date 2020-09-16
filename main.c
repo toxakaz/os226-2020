@@ -65,78 +65,73 @@ struct str* init(int start_len)
 	return str;
 }
 
-char* str_get_string(struct str* str)
-{
-	char* string = (char*)malloc(sizeof(char) * str->len);
-	for (int i = 0; i < str->len; i++)
-		string[i] = str->str[i];
-	return string;
-}
-
 void str_free(struct str* str)
 {
 	free(str->str);
 	free(str);
 }
 
-void str_reinit(struct str** str, int start_len)
+int process(int argc, char* argv[])
 {
-	str_free(*str);
-	*str = init(start_len);
-}
-
-void command_arg_add(char*** command, int* size, char* new_arg)
-{
-	char** new_command = (char**)malloc(sizeof(char*) * (*size + 1));
-	for (int i = 0; i < *size; i++)
-		new_command[i] = (*command)[i];
-	if (*size)
-		free(*command);
-	*command = new_command;
-	(*command)[(*size)++] = new_arg;
-}
-
-void command_free(char** command, int size)
-{
-	for (int i = 0; i < size; i++)
-		free(command[i]);
-	free(command);
-}
-
-int process(int* argc, char* argv[])
-{
-	int code = -1;
 	if (compare(argv[0], "echo"))
-		code = echo(*argc, argv);
+		return echo(argc, argv);
 	else if (compare(argv[0], "retcode"))
-		code = retcode(*argc, argv);
+		return retcode(argc, argv);
+}
 
-	command_free(argv, *argc);
-	*argc = 0;
-	return code;
+struct command
+{
+	char** command;
+	int size;
+	int real_size;
+};
+
+struct command* init_command(int start_size)
+{
+	struct command* command = (struct command*)malloc(sizeof(struct command));
+	command->size = 0;
+	command->real_size = start_size;
+	command->command = (char**)malloc(sizeof(char*) * start_size);
+	return command;
+}
+
+void command_arg_add(struct command* command, char* str)
+{
+	if (command->size >= command->real_size)
+	{
+		char** new_command = (char**)malloc(sizeof(char*) * (command->real_size << 1));
+		for (int i = 0; i < command->size; i++)
+			new_command[i] = command->command[i];
+		free(command->command);
+		command->command = new_command;
+		command->real_size <<= 1;
+	}
+	command->command[command->size++] = str;
 }
 
 int main(int argc, char* argv[])
 {
-	int automat[17][11] =
+	int automat[19][11] =
 	{
-		16, 16, 1, 16, 16, 8, 16, 0, 0, 16, 0,
-		2, 16, 16, 16, 16, 16, 16, 16, 16, 16, 1,
-		16, 16, 16, 3, 16, 16, 16, 16, 16, 16, 1,
-		16, 16, 16, 16, 4, 16, 16, 16, 16, 16, 1,
-		16, 16, 16, 16, 16, 16, 16, 5, 15, 16, 1,
-		6, 6, 6, 6, 6, 6, 6, 7, 0, 6, 2,
-		6, 6, 6, 6, 6, 6, 6, 5, 15, 6, 1,
-		6, 6, 6, 6, 6, 6, 6, 7, 0, 6, -1,
-		16, 16, 9, 16, 16, 16, 16, 16, 16, 16, 1,
-		16, 16, 16, 16, 16, 16, 10, 16, 16, 16, 1,
-		11, 16, 16, 16, 16, 16, 16, 16, 16, 16, 1,
-		16, 16, 16, 16, 12, 16, 16, 16, 16, 16, 1,
-		16, 13, 16, 16, 16, 16, 16, 16, 16, 16, 1,
-		16, 16, 14, 16, 16, 16, 16, 16, 16, 16, 1,
-		16, 16, 16, 16, 16, 16, 16, 15, 15, 16, 1,
-		16, 16, 1, 16, 16, 8, 16, 0, 0, 16, 10,
-		16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 3
+		18, 18, 1, 18, 18, 9, 18, 0, 0, 18, -1,
+		2, 18, 18, 18, 18, 18, 18, 18, 18, 18, 1,
+		18, 18, 18, 3, 18, 18, 18, 18, 18, 18, -1,
+		18, 18, 18, 18, 4, 18, 18, 18, 18, 18, -1,
+		18, 18, 18, 18, 18, 18, 18, 5, 16, 18, -1,
+		6, 6, 6, 6, 6, 6, 6, 8, 17, 6, 2,
+		7, 7, 7, 7, 7, 7, 7, 5, 16, 7, 1,
+		7, 7, 7, 7, 7, 7, 7, 5, 16, 7, -1,
+		6, 6, 6, 6, 6, 6, 6, 8, 17, 6, -1,
+		18, 18, 10, 18, 18, 18, 18, 18, 18, 18, 1,
+		18, 18, 18, 18, 18, 18, 11, 18, 18, 18, -1,
+		12, 18, 18, 18, 18, 18, 18, 18, 18, 18, -1,
+		18, 18, 18, 18, 13, 18, 18, 18, 18, 18, -1,
+		18, 14, 18, 18, 18, 18, 18, 18, 18, 18, -1,
+		18, 18, 15, 18, 18, 18, 18, 18, 18, 18, -1,
+		18, 18, 18, 18, 18, 18, 18, 16, 16, 18, -1,
+		18, 18, 1, 18, 18, 9, 18, 0, 0, 18, 3,
+		18, 18, 1, 18, 18, 9, 18, 0, 0, 18, 0,
+		18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 4
 	};
 
 	int key[2 << (sizeof(char) << 3)];
@@ -148,71 +143,44 @@ int main(int argc, char* argv[])
 	for (;;)
 	{
 		int state = 0;
-		char c = getchar();
 		char error = 0;
 
-		char** command = 0;
-		int size = 0;
+		struct command* command = init_command(8);
 
 		struct str* str = init(8);
-		struct str* error_str = init(32);
 
-		int i = 1;
+		for (char c = getchar(); c != '\n'; c = getchar())
+			str_add(str, c);
+		str_add(str, ';');
 
-		while (c != '\n')
+		char* last_point = str->str;
+
+		for (int i = 0; i < str->len && str->str[i] != '\0' && !error; i++)
 		{
-			str_add(error_str, c);
-
-			state = automat[state][key[c]];
+			state = automat[state][key[str->str[i]]];
 			switch (automat[state][10])
 			{
-			case 0:
-				if (size > 0)
-				{
-					str_reinit(&error_str, 32);
-					code = process(&size, command);
-				}
-				break;
-
 			case 1:
-				str_add(str, c);
+				last_point = &(str->str[i]);
+				command_arg_add(command, last_point);
 				break;
-
 			case 2:
-				command_arg_add(&command, &size, str_get_string(str));
-				str_reinit(&str, 8);
+				str->str[i] = '\0';
 				break;
-
 			case 3:
-				if (!error)
-					error = 1;
+				str->str[i] = '\0';
+			case 0:
+				code = process(command->size, command->command);
+				command->size = 0;
 				break;
-
-			case 10:
-				command_arg_add(&command, &size, str_get_string(str));
-				str_reinit(&str, 8);
-				str_reinit(&error_str, 32);
-				code = process(&size, command);
-				break;
+			case 4:
+				str->str[str->len - 2] = '\0';
+				printf("can not process command: %s\n", last_point);
+				code = -1;
+				error = 1;
 			}
-
-			c = getchar();
-		}
-
-		if (error)
-		{
-			printf("can not process: %s", error_str->str);
-			if (size > 0)
-				command_free(command, &size);
-		}
-		else if (str->len > 1 || size > 0)
-		{
-			if (str->len > 1)
-				command_arg_add(&command, &size, str_get_string(str));
-			code = process(&size, command);
 		}
 
 		str_free(str);
-		str_free(error_str);
 	}
 }
