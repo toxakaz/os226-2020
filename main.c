@@ -20,66 +20,36 @@ int retcode(int argc, char* argv[])
 	return code;
 }
 
-struct str
+void str_add(char** str, int* len, int* real_len, char c)
 {
-	int len;
-	int real_len;
-	char* str;
-};
-
-void str_add(struct str* str, char c)
-{
-	if (str->len >= str->real_len)
+	if (*len >= *real_len)
 	{
-		char* new_string = (char*)malloc(sizeof(char) * (str->real_len << 1));
-		for (int i = 0; i < str->real_len; i++)
-			new_string[i] = str->str[i];
-		free(str->str);
-		str->real_len <<= 1;
-		str->str = new_string;
+		char* new_string = (char*)malloc(sizeof(char) * (*real_len << 1));
+		for (int i = 0; i < *real_len; i++)
+			new_string[i] = (*str)[i];
+		free(*str);
+		*real_len <<= 1;
+		*str = new_string;
 	}
 
-	str->str[str->len++] = c;
+	(*str)[*len] = c;
+	*len += 1;
 }
 
-struct str* init(int start_len)
+void command_arg_add(char*** command, int* size, int* real_size, char* str)
 {
-	struct str* str = (struct str*)malloc(sizeof(struct str));
-	str->len = 0;
-	str->real_len = start_len;
-	str->str = (char*)malloc(sizeof(char) * start_len);
-	return str;
-}
-
-struct command
-{
-	char** command;
-	int size;
-	int real_size;
-};
-
-struct command* init_command(int start_size)
-{
-	struct command* command = (struct command*)malloc(sizeof(struct command));
-	command->size = 0;
-	command->real_size = start_size;
-	command->command = (char**)malloc(sizeof(char*) * start_size);
-	return command;
-}
-
-void command_arg_add(struct command* command, char* str)
-{
-	if (command->size >= command->real_size)
+	if (*size >= *real_size)
 	{
-		char** new_command = (char**)malloc(sizeof(char*) * (command->real_size << 1));
-		for (int i = 0; i < command->size; i++)
-			new_command[i] = command->command[i];
-		free(command->command);
-		command->command = new_command;
-		command->real_size <<= 1;
+		char** new_command = (char**)malloc(sizeof(char*) * (*real_size << 1));
+		for (int i = 0; i < *size; i++)
+			new_command[i] = (*command)[i];
+		free(*command);
+		*command = new_command;
+		*real_size <<= 1;
 	}
 
-	command->command[command->size++] = str;
+	(*command)[*size] = str;
+	*size += 1;
 }
 
 int main(int argc, char* argv[])
@@ -113,8 +83,13 @@ int main(int argc, char* argv[])
 	for (int i = 0; i < strlen("cdehort ;"); i++)
 		key["cdehort ;"[i]] = i;
 
-	struct command* command = init_command(32);
-	struct str* str = init(32);
+	int command_real_size = 32;
+	char** command = (char**)malloc(sizeof(char*) * command_real_size);
+	int command_size = 0;
+
+	int str_real_len = 32;
+	char* str = (char*)malloc(sizeof(char) * str_real_len);
+	int str_len = 0;
 
 	for (;;)
 	{
@@ -122,40 +97,40 @@ int main(int argc, char* argv[])
 		char error = 0;
 
 		for (char c = getchar(); c != '\n'; c = getchar())
-			str_add(str, c);
-		str_add(str, ';');
+			str_add(&str, &str_len, &str_real_len, c);
+		str_add(&str, &str_len, &str_real_len, ';');
 
-		char* last_point = str->str;
+		char* last_point = str;
 
-		for (int i = 0; i < str->len && !error; i++)
+		for (int i = 0; i < str_len && !error; i++)
 		{
-			state = automat[state][key[str->str[i]]];
+			state = automat[state][key[str[i]]];
 			switch (automat[state][10])
 			{
 			case 1:
-				last_point = str->str + i;
-				command_arg_add(command, last_point);
+				last_point = str + i;
+				command_arg_add(&command, &command_size, &command_real_size, last_point);
 				break;
 			case 2:
-				str->str[i] = '\0';
+				str[i] = '\0';
 				break;
 			case 3:
-				str->str[i] = '\0';
+				str[i] = '\0';
 			case 0:
-				if (command->command[0][0] == 'e')
-					code = echo(command->size, command->command);
+				if (command[0][0] == 'e')
+					code = echo(command_size, command);
 				else
-					code = retcode(command->size, command->command);
-				command->size = 0;
+					code = retcode(command_size, command);
+				command_size = 0;
 				break;
 			case 4:
-				str->str[str->len - 1] = '\0';
+				str[str_len - 1] = '\0';
 				printf("can not process command: %s\n", last_point);
 				code = -1;
 				error = 1;
 			}
 		}
 
-		str->len = 0;
+		str_len = 0;
 	}
 }
