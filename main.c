@@ -20,17 +20,6 @@ int retcode(int argc, char* argv[])
 	return code;
 }
 
-char compare(char* str_1, char* str_2)
-{
-	int i = 0;
-	for (; str_1[i] != '\0' && str_2[i] != '\0'; i++)
-		if (str_1[i] != str_2[i])
-			return 0;
-	if (str_1[i] != str_2[i])
-		return 0;
-	return 1;
-}
-
 struct str
 {
 	int len;
@@ -73,9 +62,9 @@ void str_free(struct str* str)
 
 int process(int argc, char* argv[])
 {
-	if (compare(argv[0], "echo"))
+	if (argv[0][0] == 'e')
 		return echo(argc, argv);
-	else if (compare(argv[0], "retcode"))
+	else
 		return retcode(argc, argv);
 }
 
@@ -140,14 +129,13 @@ int main(int argc, char* argv[])
 	for (int i = 0; i < 9; i++)
 		key["cdehort ;"[i]] = i;
 
+	struct command* command = init_command(8);
+	struct str* str = init(8);
+
 	for (;;)
 	{
 		int state = 0;
 		char error = 0;
-
-		struct command* command = init_command(8);
-
-		struct str* str = init(8);
 
 		for (char c = getchar(); c != '\n'; c = getchar())
 			str_add(str, c);
@@ -181,6 +169,7 @@ int main(int argc, char* argv[])
 			}
 		}
 
-		str_free(str);
+		str->len = 1;
+		str->str[0] = '\0';
 	}
 }
